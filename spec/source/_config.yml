@@ -1,0 +1,12 @@
+title: Test
+email: test@test.test
+description: >
+  A simple test.
+baseurl: ""
+url: 'test.test'
+
+# Build settings
+markdown: kramdown
+
+gems:
+  - pjey

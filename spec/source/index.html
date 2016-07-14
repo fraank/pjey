@@ -1,0 +1,14 @@
+---
+layout: default
+pjey: true
+---
+<posts>
+  {% for post in pjey.posts %}
+    <post>
+      <title>{{ post.title }}</title>
+      <url>{{ post.url | prepend: site.baseurl }}</url>
+      <date>{{ post.date | date: "%b %-d, %Y"}}</date>
+      <tags>{{ post.tags | join : "," }}</tags>
+    </post>
+  {% endfor %}
+</posts>

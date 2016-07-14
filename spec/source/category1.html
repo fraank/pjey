@@ -1,0 +1,15 @@
+---
+layout: default
+pjey:
+  categories: category1
+---
+<posts>
+  {% for post in pjey.posts %}
+    <post>
+      <title>{{ post.title }}</title>
+      <url>{{ post.url | prepend: site.baseurl }}</url>
+      <date>{{ post.date | date: "%b %-d, %Y"}}</date>
+      <categories>{{ post.categories | join : "," }}</categories>
+    </post>
+  {% endfor %}
+</posts>

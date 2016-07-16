@@ -4,7 +4,7 @@ require_relative '../spec_helper'
 
 describe 'Pages Posts', :type => :controller do
 
-  before do
+  before :all do
     @test = JekyllUnitTest.new
 
     @site = Site.new(@test.site_configuration)
@@ -92,12 +92,17 @@ describe 'Pages Posts', :type => :controller do
           
           page_info = doc.elements['result/page']
           page = page_info.elements['num'].text.to_i
-          total = page_info.elements['total'].text.to_i
-          totalpages = page_info.elements['totalpages'].text.to_i
-
           expect(page).to eq 1
+          
+          path = page_info.elements['path'].text
+          expect(path).to eq "category1_p2.html"
+
+          total = page_info.elements['total'].text.to_i
           expect(total).to eq 7
+
+          totalpages = page_info.elements['totalpages'].text.to_i
           expect(totalpages).to eq 4
+          
         end
       end
       
@@ -113,6 +118,8 @@ describe 'Pages Posts', :type => :controller do
           page_info = doc.elements['result/page']
           page = page_info.elements['num'].text.to_i
           expect(page).to eq 2
+          path = page_info.elements['path'].text
+          expect(path).to eq "category1_p2_2.html"
         end
       end
 
@@ -142,11 +149,15 @@ describe 'Pages Posts', :type => :controller do
           
           page_info = doc.elements['result/page']
           page = page_info.elements['num'].text.to_i
-          total = page_info.elements['total'].text.to_i
-          totalpages = page_info.elements['totalpages'].text.to_i
-
           expect(page).to eq 1
+
+          path = page_info.elements['path'].text
+          expect(path).to eq "subfolder/index.html"
+
+          total = page_info.elements['total'].text.to_i
           expect(total).to eq 7
+
+          totalpages = page_info.elements['totalpages'].text.to_i
           expect(totalpages).to eq 4
         end
       end
@@ -162,6 +173,9 @@ describe 'Pages Posts', :type => :controller do
           page_info = doc.elements['result/page']
           page = page_info.elements['num'].text.to_i
           expect(page).to eq 2
+
+          path = page_info.elements['path'].text
+          expect(path).to eq "subfolder/index_2.html"
         end
       end
 
@@ -170,4 +184,30 @@ describe 'Pages Posts', :type => :controller do
 
   end
 
+  describe 'pagination with folder for each page' do
+
+    it 'check category filter' do
+      per_page = 2
+
+      # check second page
+      page2_exists = false
+      @site.pages.each do |page|
+        if page.path == "in_subfolder_make_subfolder/2/index.html"
+          page2_exists = true
+
+          page.render(@layouts, @site.site_payload)
+          doc = REXML::Document.new(page.content)
+          page_info = doc.elements['result/page']
+          page = page_info.elements['num'].text.to_i
+          expect(page).to eq 2
+
+          path = page_info.elements['path'].text
+          expect(path).to eq "in_subfolder_make_subfolder/2/index.html"
+        end
+      end
+
+      expect(page2_exists).to eq true
+    end
+
+  end
 end

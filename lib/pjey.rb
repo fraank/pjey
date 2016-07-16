@@ -18,12 +18,10 @@ module Jekyll
           end
 
           pjey.paginate(pjey.data).each do |page_data|
-            if page_data['page'] == 1
+            if page_data['page']['page'] == 1
               jekyll_page.data['pjey_page'] = page_data
             else
-              page_folder = File.dirname(jekyll_page.path)
-              page_folder = "" if page_folder == "."
-              site.pages << PjeyPage.new(site, page_folder, page_data)
+              site.pages << PjeyPage.new(site, page_data['page']['path'], page_data)
             end
           end
         end
@@ -34,21 +32,21 @@ module Jekyll
 
   class PjeyPage < Page
     
-    def initialize(site, dir, page_data)
+    def initialize(site, path, page_data)
       @site = site
-      @dir = dir
+      @dir = File.dirname(path)
+      @dir = "" if @dir == "."
 
       @page_data = page_data
-      @name = page_data['permalink']
+      @name = page_data['page']['filename']
 
       self.ext = File.extname(@name)
       self.basename = File.basename(@name)
-
-      self.read_yaml(@dir, page_data['root']) # <<- has to be the source file
+      self.read_yaml(File.dirname(page_data['page']['root']['path']), File.basename(page_data['page']['root']['path'])) # <<- has to be the source file
       
       title = ""
       title = @page_data['title'] if(@page_data['title'] && @page_data['title'] != "")
-      title = title + @page_data['title_suffix'].gsub(':page', @page_data['page'].to_s) if(@page_data['title_suffix'] && @page_data['title_suffix'] != "")
+      title = title + @page_data['title_suffix'].gsub(':page', @page_data['page']['page'].to_s) if(@page_data['title_suffix'] && @page_data['title_suffix'] != "")
       self.data['title'] = title
       
       # temp data
@@ -61,29 +59,25 @@ module Jekyll
     end
 
     def destination(dest)
-      File.join(dest, @dir, @page_data['permalink'])
+      File.join(dest, @dir, @name)
     end
 
   end
 
   class Pjey
     
+    # default config for pagination
     DEFAULTS = {
-      'data_type'    => 'posts',
+      'data_type'    => 'posts',            # what should be iterated?
 
-      'categories'   => [],
-      'tags'         => [],
+      'categories'   => [],                 # filter by categories
+      'tags'         => [],                 # filter by tags
 
-      'order'        => 'title',
-
+      'order'        => 'title',            # do a sorting
       'per_page'     => 10,                 # entries per page
-      'total_pages'  => 0,                  # total pages count
-      'total'        => 0,                  # total entries
-      'page'         => 1,                  # current page
-      'root'         => '',                 # root page where we started
 
-      'title_suffix' => ' - Page :page',
-      'permalink'    => ':filename_:page'
+      'title_suffix' => ' - Page :page',    # how should the title of the pages should look like?
+      'permalink'    => ':filename_:page'   # how does the filename should look like?
     }
 
     def initialize page, posts, config = {}
@@ -139,6 +133,38 @@ module Jekyll
       return selected
     end
 
+    # page permalink
+    def page_permalink
+      @config['permalink'].gsub(":filename", File.basename(@page.path, ".*"))+".html"
+    end
+
+    # page filename
+    def page_filename page = 1
+      File.basename(page_permalink.gsub(":page", page.to_s))
+    end
+
+    # return path for page
+    def page_path page = 1
+      page_folder = File.dirname(@page.path)
+      subfolder_perma = File.dirname(page_permalink.gsub(":page", page.to_s))
+
+      if page == 1
+        if page_folder == "."
+          path = File.basename(@page.path)
+        else
+          path = File.join(page_folder, File.basename(@page.path))
+        end
+      else
+        page_folder = File.join(page_folder, subfolder_perma) if (subfolder_perma != ".")
+        if page_folder == "."
+          path = page_filename(page)
+        else
+          path = File.join(page_folder, page_filename(page))
+        end
+      end
+      return path
+    end
+
     def paginate elems = []
       selected = []
       pages = elems.each_slice(@config['per_page'])
@@ -147,31 +173,48 @@ module Jekyll
 
         page = index + 1
         
-        next_page = {}
-        next_page = {
-          "page" => page + 1,
-        } if page < pages.size
+        next_page = false
+        if page < pages.size
+          page_num = page + 1
+          next_page = {
+            "page" => page_num,
+            "path" => page_path(page_num)
+          }
+        end
         
-        previous_page = {}
-        previous_page = {
-          "page" => page - 1,
-        } if page > 1
+        previous_page = false
+        if page > 1
+          page_num = page - 1
+          previous_page = {
+            "page" => page_num,
+            "path" => page_path(page_num)
+          }
+        end
 
-        permalink = @config['permalink'].gsub(":filename", File.basename(@page.path, ".*")).gsub(":page", page.to_s)+".html"
-
-        
+        root = {
+          "path"     => page_path(1),
+          "filename" => File.basename(@page.path)
+        }
 
         page = {
-          "root" => File.basename(@page.path),
-          "permalink" => permalink,
-          "page" => page,
-          "total" => elems.size,
-          "total_pages" => pages.size,
-          "#{key}" => page_data,
-          "next" => next_page,
-          "previous" => previous_page
+          "page"            =>  page,                      # current page is int
+          "total_pages"     =>  pages.size,                # total pages count
+          'total'           =>  elems.size,                # total entries
+          
+          "root"            =>  root,                      # root page where we started
+
+          "permalink"       =>  page_path(':page'),            # a path where you can replace :page for getting any page
+          "path"            =>  page_path(page),           # will be "folder/index_1.html"
+          "filename"        =>  page_filename(page),       # will be "index_1.html"
+          
+          "next"            => next_page,                  # minimal page data for next page
+          "previous"        => previous_page               # minimal page data for previous page
         }
-        selected << DEFAULTS.merge(page)
+
+        selected << DEFAULTS.merge({
+          "#{key}" => page_data,
+          'page'   => page
+        })
 
       end
       return selected

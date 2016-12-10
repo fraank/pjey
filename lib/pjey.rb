@@ -42,7 +42,11 @@ module Jekyll
 
       self.ext = File.extname(@name)
       self.basename = File.basename(@name)
-      self.read_yaml(File.dirname(page_data['page']['root']['path']), File.basename(page_data['page']['root']['path'])) # <<- has to be the source file
+      
+      # this has to be the source file
+      source_dir = File.dirname(File.join(site.source, page_data['page']['root']['path']))
+      source_file = File.basename(page_data['page']['root']['path'])
+      self.read_yaml(source_dir, source_file) 
       
       title = ""
       title = @page_data['title'] if(@page_data['title'] && @page_data['title'] != "")

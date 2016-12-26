@@ -2,71 +2,10 @@
 require "jekyll"
 require "pjey/version"
 
+require "pjey/page_generator"
+require "pjey/page"
+
 module Jekyll
-
-  class PjayPageGenerator < Generator
-    safe true
-
-    def generate(site)
-      
-      site.pages.each do |jekyll_page|
-        if jekyll_page.data && jekyll_page.data['pjey'] && jekyll_page.data['pjey_activated'] != false
-          if jekyll_page.data['pjey'].is_a?(Hash)
-            pjey = Jekyll::Pjey.new(jekyll_page, site.posts, jekyll_page.data['pjey'])
-          else
-            pjey = Jekyll::Pjey.new(jekyll_page, site.posts)
-          end
-
-          pjey.paginate(pjey.data).each do |page_data|
-            if page_data['page']['page'] == 1
-              jekyll_page.data['pjey_page'] = page_data
-            else
-              site.pages << PjeyPage.new(site, page_data['page']['path'], page_data)
-            end
-          end
-        end
-      end
-
-    end
-  end
-
-  class PjeyPage < Page
-    
-    def initialize(site, path, page_data)
-      @site = site
-      @dir = File.dirname(path)
-      @dir = "" if @dir == "."
-
-      @page_data = page_data
-      @name = page_data['page']['filename']
-
-      self.ext = File.extname(@name)
-      self.basename = File.basename(@name)
-      
-      # this has to be the source file
-      source_dir = File.dirname(File.join(site.source, page_data['page']['root']['path']))
-      source_file = File.basename(page_data['page']['root']['path'])
-      self.read_yaml(source_dir, source_file) 
-      
-      title = ""
-      title = @page_data['title'] if(@page_data['title'] && @page_data['title'] != "")
-      title = title + @page_data['title_suffix'].gsub(':page', @page_data['page']['page'].to_s) if(@page_data['title_suffix'] && @page_data['title_suffix'] != "")
-      self.data['title'] = title
-      
-      # temp data
-      self.data['pjey_page'] = @page_data
-      self.data['pjey_activated'] = false
-    end
-
-    def page_data
-      @page_data
-    end
-
-    def destination(dest)
-      File.join(dest, @dir, @name)
-    end
-
-  end
 
   class Pjey
     
